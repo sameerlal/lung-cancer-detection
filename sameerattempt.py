@@ -55,7 +55,7 @@ def normalize(im):
 
 
 def main():
-	itk_img = load_itk('train_1.mhd')
+	itk_img = load_itk('Traindata_small/train_1.mhd')
 	np_scan = sitk.GetArrayFromImage(itk_img)
 	print('Image Spacing:  ', get_image_spacing(itk_img))
 	print('Image Origin:  ', get_image_origin(itk_img))
