@@ -1,10 +1,10 @@
 """
-ECE 4250 Final Project, Milestone 1
-Brian Richard (bcr53), Sameer Lal (sjl328), Gautam Mekkat (gm44)
+Module for loading and visualizing .mhd/.raw images.
+
+ECE 4250 Final Project, Milestone 1.
+Brian Richard (bcr53), Gautam Mekkat (gm484), Sameer Lal (sjl328)
 March 25th, 2018
 """
-
-"""Module for loading and visualizing .mhd/.raw images."""
 
 import os
 import numpy as np
@@ -52,15 +52,16 @@ def get_spacing(im):
     """
     return np.array(im.GetSpacing())
 
-def get_voxel_spacing(im):
+
+def get_slice_spacing(im):
     """
     Get voxel spacing on axial slice of image.
 
     :param im: SimpleITK image.
     :return: Voxel spacing of image for an axial slice as a numpy array.
     """
-    spacing = get_spacing(im)
-    return [spacing[0], spacing[1]]
+    return get_spacing(im)[:2]
+
 
 def get_slice_thickness(im):
     """
@@ -81,26 +82,29 @@ def get_files(directory):
     """
     return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.mhd')]
 
+
 def resample(im, scaling):
-	"""
-	Resample the input, scaling the axes by the scaling factor.
+    """
+    Resample the input, scaling the axes by the scaling factor.
 
-	:param im: numpy array of Image generated from a .mhd file.
-	:param spacing: array of spacing in z, y, x, dimensions.
+    :param im: numpy array of Image generated from a .mhd file.
+    :param spacing: array of spacing in z, y, x, dimensions.
 
-	:return: A resampled image, as a numpy array.
-	"""
-	return nd.zoom(im, scaling)
+    :return: A resampled image, as a numpy array.
+    """
+    return nd.zoom(im, scaling)
+
 
 def normalize(im):
-	"""
-	Normalize a numpy array, scaling matrix values on the interval [0, 1]
+    """
+    Normalize a numpy array, scaling matrix values on the interval [0, 1].
 
-	:param im: a nunmpy array to be normalized
-	"""
-	im_min = np.min(im)
-	im_max = np.max(im)
-	return (im  - im_min)/(im_max - im_min)
+    :param im: numpy array to be normalized.
+    """
+    im_min = np.min(im)
+    im_max = np.max(im)
+    return (im - im_min) / (im_max - im_min)
+
 
 if __name__ == '__main__':
     directory = 'Traindata_small'
@@ -111,21 +115,20 @@ if __name__ == '__main__':
         print(f)
         img = load_image(f)
         img_arr = get_image_array(img)
-        
+
         print('Image Spacing:  ', get_spacing(img))
         print('Image Origin:  ', get_origin(img))
-        print('Voxel Spacing:  ', get_voxel_spacing(img))
+        print('Voxel Spacing:  ', get_slice_spacing(img))
         print('Slice Thickness:  ', get_slice_thickness(img))
 
-        #resample the image to appropriate spacing (1mm x 1mm x 1mm)
-        #reversing order of image spacing to align with ordering in img_arr
+        # resample the image to appropriate spacing (1mm x 1mm x 1mm)
+        # reversing order of image spacing to align with ordering in img_arr
         new_img_arr = resample(img_arr, get_spacing(img)[::-1])
 
-        #normalizing the array for plotting purposes
-        #in 3d display, the new elemnts can represent the transparency values
+        # normalizing the array for plotting purposes
+        # in 3d display, the new elemnts can represent the transparency values
         new_img_arr = normalize(new_img_arr)
 
-        #displaying the specified slice
+        # displaying the specified slice
         plt.imshow(new_img_arr[slice_number])
         plt.show()
-        
