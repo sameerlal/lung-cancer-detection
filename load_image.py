@@ -45,12 +45,31 @@ def get_origin(im):
 
 def get_spacing(im):
     """
-    Get voxel spacing of image.
+    Get voxel spacings of image.
 
     :param im: SimpleITK image.
     :return: Voxel spacing of image as a numpy array.
     """
     return np.array(im.GetSpacing())
+
+def get_voxel_spacing(im):
+    """
+    Get voxel spacing on axial slice of image.
+
+    :param im: SimpleITK image.
+    :return: Voxel spacing of image for an axial slice as a numpy array.
+    """
+    spacing = get_spacing(im)
+    return [spacing[0], spacing[1]]
+
+def get_slice_thickness(im):
+    """
+    Get slice thickness for an axial slice of image.
+
+    :param im:  SimpleITK image.
+    :return:  Voxel spacing between axial slices in z-dimension
+    """
+    return get_spacing(im)[2]
 
 
 def get_files(directory):
@@ -84,7 +103,7 @@ def normalize(im):
 	return (im  - im_min)/(im_max - im_min)
 
 if __name__ == '__main__':
-    directory = 'one_test'
+    directory = 'Traindata_small'
     files = get_files(directory)
     slice_number = 60
 
@@ -92,6 +111,11 @@ if __name__ == '__main__':
         print(f)
         img = load_image(f)
         img_arr = get_image_array(img)
+        
+        print('Image Spacing:  ', get_spacing(img))
+        print('Image Origin:  ', get_origin(img))
+        print('Voxel Spacing:  ', get_voxel_spacing(img))
+        print('Slice Thickness:  ', get_slice_thickness(img))
 
         #resample the image to appropriate spacing (1mm x 1mm x 1mm)
         #reversing order of image spacing to align with ordering in img_arr
