@@ -9,8 +9,8 @@ March 25th, 2018
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
 import SimpleITK as sitk
-from scipy import ndimage as nd
 
 
 def load_image(image_file):
@@ -28,7 +28,7 @@ def get_image_array(im):
     Convert Image object to image array.
 
     :param im: SimpleITK Image.
-    :return: Image array.
+    :return: Image array as numpy array.
     """
     return sitk.GetArrayFromImage(im)
 
@@ -83,16 +83,25 @@ def get_files(directory):
     return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith('.mhd')]
 
 
-def resample(im, scaling):
+def resample_image_to_1mm(im):
     """
-    Resample the input, scaling the axes by the scaling factor.
+    Resample the input to 1mm x 1mm x 1mm voxel spacing.
 
-    :param im: numpy array of Image generated from a .mhd file.
-    :param spacing: array of spacing in z, y, x, dimensions.
-
-    :return: A resampled image, as a numpy array.
+    :param im: SimpleITK Image.
+    :return: Resampled SimpleITK Image to 1mm x 1mm x 1mm spacing.
     """
-    return nd.zoom(im, scaling)
+    dimensions = np.multiply(im.GetSize(), get_spacing(im))
+    dimensions = [int(d + 0.5) for d in dimensions]  # sitk.Image only takes native int type, not numpy types
+
+    # Create reference image on to which we will map the original image.
+    # Resource used for resampling:
+    # https://github.com/InsightSoftwareConsortium/SimpleITK-Notebooks/blob/master/Python/70_Data_Augmentation.ipynb
+    reference_image = sitk.Image(*dimensions, im.GetPixelIDValue())
+    reference_image.SetOrigin(get_origin(im))
+    reference_image.SetDirection(im.GetDirection())
+    reference_image.SetSpacing([1, 1, 1])
+    reference_image = sitk.Resample(sitk.SmoothingRecursiveGaussian(im, 2), reference_image)
+    return sitk.Resample(im, reference_image)
 
 
 def normalize(im):
@@ -107,28 +116,27 @@ def normalize(im):
 
 
 if __name__ == '__main__':
+    # Training data should be in the Traindata_small/ directory
     directory = 'Traindata_small'
     files = get_files(directory)
-    slice_number = 60
+    slice_number = 60  # The slice index to show
 
     for f in files:
         print(f)
         img = load_image(f)
-        img_arr = get_image_array(img)
 
-        print('Image Spacing:  ', get_spacing(img))
-        print('Image Origin:  ', get_origin(img))
-        print('Voxel Spacing:  ', get_slice_spacing(img))
-        print('Slice Thickness:  ', get_slice_thickness(img))
+        print('Image Spacing (in mm):', get_spacing(img))
+        print('Image Origin (in mm):', get_origin(img))
+        print('Voxel Spacing (in mm):', get_slice_spacing(img))
+        print('Slice Thickness (in mm):', get_slice_thickness(img))
 
-        # resample the image to appropriate spacing (1mm x 1mm x 1mm)
-        # reversing order of image spacing to align with ordering in img_arr
-        new_img_arr = resample(img_arr, get_spacing(img)[::-1])
+        # Resample the image to appropriate spacing (1mm x 1mm x 1mm).
+        new_img_arr = get_image_array(resample_image_to_1mm(img))
 
-        # normalizing the array for plotting purposes
-        # in 3d display, the new elemnts can represent the transparency values
-        new_img_arr = normalize(new_img_arr)
+        # Normalize the array for plotting purposes.
+        # In 3D display, the new elements can represent the transparency values.
+        # new_img_arr = normalize(new_img_arr)
 
-        # displaying the specified slice
-        plt.imshow(new_img_arr[slice_number])
+        # Display the specified slice (cm.bone used to show high constrast image).
+        plt.imshow(cm.bone(new_img_arr[150]))
         plt.show()
