@@ -119,7 +119,6 @@ if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
     directory = 'Traindata_small'
     files = get_files(directory)
-    slice_number = 60  # The slice index to show
 
     for f in files:
         print(f)
@@ -133,10 +132,11 @@ if __name__ == '__main__':
         # Resample the image to appropriate spacing (1mm x 1mm x 1mm).
         new_img_arr = get_image_array(resample_image_to_1mm(img))
 
-        # Normalize the array for plotting purposes.
+        # Normalize the array for plotting purposes (not used for now).
         # In 3D display, the new elements can represent the transparency values.
         # new_img_arr = normalize(new_img_arr)
 
-        # Display the specified slice (cm.bone used to show high constrast image).
-        plt.imshow(cm.bone(new_img_arr[150]))
+        # Display the specified slice (cm.bone is used to show a high constrast image).
+        middle_slice_index = new_img_arr.shape[0] // 2
+        plt.imshow(cm.bone(new_img_arr[middle_slice_index]))
         plt.show()
