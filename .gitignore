@@ -109,3 +109,6 @@ Traindata_small/
 # Image files
 *.mhd
 *.raw
+
+# CSV files
+*.csv

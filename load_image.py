@@ -7,9 +7,9 @@ March 25th, 2018
 """
 
 import os
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import cm
 import SimpleITK as sitk
 
 
@@ -21,6 +21,27 @@ def load_image(image_file):
     :return: Loaded SimpleITK Image.
     """
     return sitk.ReadImage(image_file)
+
+
+def load_nodule_csv(csv_file):
+    """
+    Load csv file and return a dictionary mapping from the first column of each row to the remaining columns.
+
+    :param csv_file: Filename of the csv to load.
+    :return: Loaded dictionary.
+    """
+    output = {}
+    with open(csv_file) as f:
+        reader = csv.reader(f)
+        next(reader)
+        for line in reader:
+            label = line[0]
+            coords = np.array([float(i) for i in line[1:]])
+            if label not in output:
+                output[label] = [coords]
+            else:
+                output[label].append(coords)
+    return output
 
 
 def get_image_array(im):
@@ -119,9 +140,11 @@ if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
     directory = 'Traindata_small'
     files = get_files(directory)
+    training_nodules = load_nodule_csv('training_nodules.csv')
 
     for f in files:
         print(f)
+        label = os.path.splitext(os.path.basename(f))[0]
         img = load_image(f)
 
         print('Image Spacing (in mm):', get_spacing(img))
@@ -136,7 +159,22 @@ if __name__ == '__main__':
         # In 3D display, the new elements can represent the transparency values.
         # new_img_arr = normalize(new_img_arr)
 
-        # Display the specified slice (cm.bone is used to show a high constrast image).
-        middle_slice_index = new_img_arr.shape[0] // 2
-        plt.imshow(cm.bone(new_img_arr[middle_slice_index]))
-        plt.show()
+        # Display the training nodule and get the z-value to plot
+        slice_index = new_img_arr.shape[0] // 2
+        if label in training_nodules:
+            nodules = training_nodules[label]
+            for nodule in nodules:
+                origin = get_origin(img)
+                x, y, z = nodule[:3] - origin
+                slice_index = int(z)
+                plt.imshow(new_img_arr[slice_index], cmap='gray')
+                plt.title('{} (slice index {})'.format(label, slice_index))
+                print('NODULE FOUND AT ({}, {})'.format(x, y))
+                circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False, alpha=0.5)
+                plt.gca().add_artist(circle)
+                plt.show()
+        else:
+            print('NO NODULE FOUND')
+            plt.imshow(new_img_arr[slice_index], cmap='gray')
+            plt.title('{} (slice index {})'.format(label, slice_index))
+            plt.show()
