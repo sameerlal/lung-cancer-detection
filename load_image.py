@@ -11,6 +11,7 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
+import cv2
 
 
 def load_image(image_file):
@@ -125,6 +126,17 @@ def resample_image_to_1mm(im):
     return sitk.Resample(im, reference_image)
 
 
+def extract_candidate_nodules(im):
+    """
+    Extract candidate nodules from the given image using a Canny edge detector.
+
+    :param im: Input image (values should be normalized between 0 and 1).
+    :return: Edge detection image.
+    """
+    img = cv2.blur(im * 255, (5, 5))
+    return cv2.Canny(img.astype('uint8'), 20, 50) / 255
+
+
 def normalize(im):
     """
     Normalize a numpy array, scaling matrix values on the interval [0, 1].
@@ -134,6 +146,19 @@ def normalize(im):
     im_min = np.min(im)
     im_max = np.max(im)
     return (im - im_min) / (im_max - im_min)
+
+
+def plot_candidate_nodules(img_arr, slice_index):
+    """
+    Plot candidate nodules of the given image array with the given slice index.
+
+    :param img_arr: Image as numpy array.
+    :param slice_index: Slice index (z-index).
+    :return: None.
+    """
+    normalized = normalize(img_arr[slice_index])
+    edge_detection = extract_candidate_nodules(normalized)
+    plt.imshow(edge_detection, cmap='gray', alpha=0.5)
 
 
 if __name__ == '__main__':
@@ -159,7 +184,7 @@ if __name__ == '__main__':
         # In 3D display, the new elements can represent the transparency values.
         # new_img_arr = normalize(new_img_arr)
 
-        # Display the training nodule and get the z-value to plot
+        # Display the training nodules and get the z-value to plot
         slice_index = new_img_arr.shape[0] // 2
         if label in training_nodules:
             nodules = training_nodules[label]
@@ -172,9 +197,11 @@ if __name__ == '__main__':
                 print('NODULE FOUND AT ({}, {})'.format(x, y))
                 circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False, alpha=0.5)
                 plt.gca().add_artist(circle)
+                plot_candidate_nodules(new_img_arr, slice_index)
                 plt.show()
         else:
             print('NO NODULE FOUND')
             plt.imshow(new_img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
+            plot_candidate_nodules(new_img_arr, slice_index)
             plt.show()
