@@ -175,30 +175,29 @@ def get_lung_mask(img_arr):
     return eroded / 255
 
 
-def extract_candidate_nodules(img_arr):
+def extract_candidate_nodules(img, mask):
     """
-    Extract suspicous nodules from masked image.
+    Extract suspicious nodules from masked image.
 
-    :param img_arr: Image array
-    :return: Numpy array displaying candidate nodules
+    :param img: Image array as 2D numpy array.
+    :param mask: Image mask as 2D numpy array (must have same shape as img).
+    :return: Numpy array displaying candidate nodules.
     """
-    print('Extracting candidate nodules...')
+    masked_img = mask * img
+    masked_img[masked_img == 0] = 1
     # Detect candidates blobs within a certain standard deviation
-    candidates = feature.blob_log(img_arr, min_sigma=0.5, max_sigma=2, threshold=0.3)
-    plt.imshow(img_arr)
-    # Error Message
-    if len(candidates) < 1:
-        print('No Candidates Found.')
-    else:
-        print(candidates)
-    # Iterate through each coordinate
+    candidates = feature.blob_log(masked_img, min_sigma=0.5, max_sigma=2, threshold=0.3)
+    # Remove blobs on edges
+    border = cv2.dilate(mask, np.ones((20, 20))) - cv2.erode(mask, np.ones((6, 6)))
+    candidates = [coord for coord in candidates if border[int(coord[0]), int(coord[1])] != 1]
+    plt.imshow(masked_img)
     for coord in candidates:
-        x = coord[1]  # x-coordinate of nodule
-        y = coord[0]  # y-coordinate of nodule
-        sig = coord[2]  # variance of intensity values
-        plt.title('Extracting Candidate Nodules')
+        x = coord[1]
+        y = coord[0]
+        variance = coord[2]  # Variance of intensity values
+        plt.title('Candidate Nodules')
         # Plot on canvas
-        circle = plt.Circle((x, y), 1.414*sig, color='r', fill=False)
+        circle = plt.Circle((x, y), 1.414 * variance, color='r', fill=False)
         plt.gca().add_artist(circle)
     plt.show()
 
@@ -238,19 +237,11 @@ if __name__ == '__main__':
                 plt.gca().add_artist(circle)
                 plt.show()
                 mask = get_lung_mask(img_arr[slice_index])
-                masked_img = mask * img_arr[slice_index]
-                masked_img[masked_img == 0] = 1
-                plt.imshow(masked_img, cmap='gray')
-                plt.show()
-                extract_candidate_nodules(masked_img)
+                extract_candidate_nodules(img_arr[slice_index], mask)
         else:
             print('NO NODULE FOUND')
             plt.imshow(img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
             plt.show()
             mask = get_lung_mask(img_arr[slice_index])
-            masked_img = mask * img_arr[slice_index]
-            masked_img[masked_img == 0] = 1
-            plt.imshow(masked_img, cmap='gray')
-            plt.show()
-            extract_candidate_nodules(masked_img)
+            extract_candidate_nodules(img_arr[slice_index], mask)
