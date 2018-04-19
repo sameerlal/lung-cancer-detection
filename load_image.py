@@ -126,39 +126,50 @@ def resample_image_to_1mm(im):
     return sitk.Resample(im, reference_image)
 
 
-def extract_candidate_nodules(im):
+def standardize(img_arr):
     """
-    Extract candidate nodules from the given image using a Canny edge detector.
+    Standardize a numpy array so that the mean is 0 and std. dev. is 1.
 
-    :param im: Input image (values should be normalized between 0 and 1).
-    :return: Edge detection image.
+    :param img_arr: The numpy array to be standardized.
+    :return: The standardized image as a numpy array.
     """
-    img = cv2.blur(im * 255, (5, 5))
-    return cv2.Canny(img.astype('uint8'), 20, 50) / 255
+    return (img_arr - np.mean(img_arr)) / np.std(img_arr)
 
 
-def normalize(im):
+def normalize(img_arr):
     """
-    Normalize a numpy array, scaling matrix values on the interval [0, 1].
+    Normalize a numpy array so that all values are between 0 and 1.
 
-    :param im: numpy array to be normalized.
+    :param img_arr: The numpy array to be normalized.
+    :return: The normalized image as a numpy array.
     """
-    im_min = np.min(im)
-    im_max = np.max(im)
-    return (im - im_min) / (im_max - im_min)
+    return (img_arr - np.min(img_arr)) / (np.max(img_arr) - np.min(img_arr))
 
 
-def plot_candidate_nodules(img_arr, slice_index):
+def get_lung_mask(img_arr):
     """
-    Plot candidate nodules of the given image array with the given slice index.
+    Return an image mask that only highlights the lungs in the given image.
 
-    :param img_arr: Image as numpy array.
-    :param slice_index: Slice index (z-index).
-    :return: None.
+    :param img_arr: Image array to mask as numpy array.
+    :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
-    normalized = normalize(img_arr[slice_index])
-    edge_detection = extract_candidate_nodules(normalized)
-    plt.imshow(edge_detection, cmap='gray', alpha=0.5)
+    # Credit for some ideas:
+    # https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_watershed/py_watershed.html.
+    img = standardize(img_arr)
+    img[img < 0] = 0  # Get rid of black background.
+    img = (normalize(img) * 255).astype('uint8')
+    # Blur to get rid of noise.
+    blurred = cv2.GaussianBlur(img, (27, 27), 0)
+    # Use Otsu's method to get black and white image (differentiates lung and bone).
+    ret, thresh = cv2.threshold(blurred, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    # Fill background with 0 (we want to mask it out).
+    filled = cv2.floodFill(thresh, None, (0, 0), 0)[1]
+    filled = cv2.floodFill(filled, None, (img_arr.shape[0] - 1, img_arr.shape[1] - 1), 0)[1]
+    # Dilate to get rid of specks in lung mask.
+    dilated = cv2.dilate(filled, np.ones((10, 10)))
+    # Erode to tighten border of mask.
+    eroded = cv2.erode(dilated, np.ones((7, 7)))
+    return eroded / 255
 
 
 if __name__ == '__main__':
@@ -178,30 +189,35 @@ if __name__ == '__main__':
         print('Slice Thickness (in mm):', get_slice_thickness(img))
 
         # Resample the image to appropriate spacing (1mm x 1mm x 1mm).
-        new_img_arr = get_image_array(resample_image_to_1mm(img))
-
-        # Normalize the array for plotting purposes (not used for now).
-        # In 3D display, the new elements can represent the transparency values.
-        # new_img_arr = normalize(new_img_arr)
+        img_arr = get_image_array(resample_image_to_1mm(img))
+        img_arr = standardize(img_arr)
 
         # Display the training nodules and get the z-value to plot
-        slice_index = new_img_arr.shape[0] // 2
+        slice_index = img_arr.shape[0] // 2
         if label in training_nodules:
             nodules = training_nodules[label]
             for nodule in nodules:
                 origin = get_origin(img)
                 x, y, z = nodule[:3] - origin
                 slice_index = int(z)
-                plt.imshow(new_img_arr[slice_index], cmap='gray')
+                plt.imshow(img_arr[slice_index], cmap='gray')
                 plt.title('{} (slice index {})'.format(label, slice_index))
                 print('NODULE FOUND AT ({}, {})'.format(x, y))
-                circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False, alpha=0.5)
+                circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 plt.gca().add_artist(circle)
-                plot_candidate_nodules(new_img_arr, slice_index)
+                plt.show()
+                mask = get_lung_mask(img_arr[slice_index])
+                masked_img = mask * img_arr[slice_index]
+                masked_img[masked_img == 0] = 1
+                plt.imshow(masked_img, cmap='gray')
                 plt.show()
         else:
             print('NO NODULE FOUND')
-            plt.imshow(new_img_arr[slice_index], cmap='gray')
+            plt.imshow(img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
-            plot_candidate_nodules(new_img_arr, slice_index)
+            plt.show()
+            mask = get_lung_mask(img_arr[slice_index])
+            masked_img = mask * img_arr[slice_index]
+            masked_img[masked_img == 0] = 1
+            plt.imshow(masked_img, cmap='gray')
             plt.show()
