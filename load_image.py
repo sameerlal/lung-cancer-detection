@@ -12,6 +12,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
 import cv2
+from skimage import feature
 
 
 def load_image(image_file):
@@ -169,7 +170,34 @@ def get_lung_mask(img_arr):
     dilated = cv2.dilate(filled, np.ones((10, 10)))
     # Erode to tighten border of mask.
     eroded = cv2.erode(dilated, np.ones((7, 7)))
+    plt.imshow(eroded)
+    plt.show()
     return eroded / 255
+
+def extract_candidate_nodules(img_arr):
+    """
+    Extract suspicous nodules from masked image
+    :param img_arr: Image array
+    :return: Numpy array displaying candidate nodules
+    """ 
+    print("Extracting candidate nodules...")
+    # Detect candidates blobs within a certian standard deviation
+    candidates = feature.blob_log(img_arr, min_sigma = 0.5, max_sigma = 2, threshold = 0.3)
+    plt.imshow(img_arr)
+    # Error Message
+    print('No Candidates Found. ') if len(candidates) < 1 else print(candidates)
+    # Iterate through each coordinate
+    for coord in candidates:
+        x = coord[1]  # x-coordinate of nodule
+        y = coord[0]  # y-coordinate of nodule 
+        sig = coord[2] # variance of intensity values
+        plt.title('Extracting Candidate Nodules')
+        # Plot on canvas
+        circle = plt.Circle((x, y), 1.414*sig, color='r', fill=False)
+        plt.gca().add_artist(circle)
+    plt.show()
+
+
 
 
 if __name__ == '__main__':
@@ -211,6 +239,7 @@ if __name__ == '__main__':
                 masked_img[masked_img == 0] = 1
                 plt.imshow(masked_img, cmap='gray')
                 plt.show()
+                extract_candidate_nodules(masked_img)
         else:
             print('NO NODULE FOUND')
             plt.imshow(img_arr[slice_index], cmap='gray')
@@ -221,3 +250,4 @@ if __name__ == '__main__':
             masked_img[masked_img == 0] = 1
             plt.imshow(masked_img, cmap='gray')
             plt.show()
+            extract_candidate_nodules(masked_img)
