@@ -183,10 +183,10 @@ def extract_candidate_nodules(img_arr, mask):
     :param mask: Image mask as 2D numpy array (must have same shape as img).
     :return: Numpy array displaying candidate nodules.
     """
-    masked_img = mask * img
+    masked_img = mask * img_arr
     masked_img[masked_img == 0] = 1
     # Detect candidates blobs within a certain standard deviation
-    candidates = feature.blob_log(masked_img, min_sigma=1, max_sigma=4, threshold=0.2)
+    candidates = feature.blob_log(masked_img, min_sigma=1, max_sigma=2, threshold=0.3)
     # Remove blobs on edges
     border = cv2.dilate(mask, np.ones((20, 20))) - cv2.erode(mask, np.ones((4, 4)))
     candidates = [coord for coord in candidates if border[int(coord[0]), int(coord[1])] != 1]
@@ -211,9 +211,7 @@ if __name__ == '__main__':
     training_nodules = load_nodule_csv('training_nodules.csv')
 
     for f in files:
-        if f != 'Traindata_small/train_13.mhd':
-            continue
-        print(f)
+
         label = os.path.splitext(os.path.basename(f))[0]
         img = load_image(f)
 
