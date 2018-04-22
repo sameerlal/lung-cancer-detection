@@ -144,8 +144,6 @@ def normalize(img_arr):
     :param img_arr: The numpy array to be normalized.
     :return: The normalized image as a numpy array.
     """
-    if np.max(img_arr) - np.min(img_arr) == 0:
-        return img_arr
     return (img_arr - np.min(img_arr)) / (np.max(img_arr) - np.min(img_arr))
 
 
@@ -172,43 +170,18 @@ def get_lung_mask(img_arr):
     dilated = cv2.dilate(filled, np.ones((10, 10)))
     # Erode to tighten border of mask.
     eroded = cv2.erode(dilated, np.ones((3, 3)))
-    
-    # Uncomment below to lines for trace
-    # plt.imshow(eroded)
-    # plt.show()
+    plt.imshow(eroded)
+    plt.show()
     return eroded / 255
-
-def get_lung_mask3d(img_arr):
-    """
-    Return an image mask that only highlights the lungs in the given image (3d).
-
-    :param img_arr:  Image 3d array to mask as numpy array.
-    :return:  Numpy array of 1s and 0s.  1 means that a lung is at the corresponding location in the given image.  
-    """
-    slice_index_max = img_arr.shape[0]  # Obtain number of layers
-    mask_3d = np.zeros_like(img_arr)  # Initialize mask
-
-    for slice_index in range(0,slice_index_max):
-        # Iterate through each slice and obtain mask
-        # print('Displaying slice: {} of {}'.format(slice_index,slice_index_max))
-        img_slice = img_arr[slice_index]
-        # Uncomment below two lines for trace
-        # plt.imshow(img_slice)
-        # plt.show()
-        mask_3d[slice_index] = get_lung_mask(img_slice)
-        # Uncomment below two lines
-        # plt.imshow(mask_3d[slice_index])
-        # plt.show()
-    return mask_3d
 
 
 def extract_candidate_nodules(img_arr, mask):
     """
     Extract suspicious nodules from masked image.
 
-    :param img_arr: Image array as 2D numpy array.
+    :param img: Image array as 2D numpy array.
     :param mask: Image mask as 2D numpy array (must have same shape as img).
-    :return: Numpy array displaying candidate nodules as (y,x)
+    :return: Numpy array displaying candidate nodules.
     """
     masked_img = mask * img_arr
     masked_img[masked_img == 0] = 1
@@ -231,32 +204,14 @@ def extract_candidate_nodules(img_arr, mask):
     return candidates
 
 
-def extract_candidate_nodules3d(img_arr, mask):
-    """
-    Extract suspicious nodules from masked images in 3d.
-
-    :parm img_arr:  Image array as 3D numpy array.
-    :param mask:  Image mask as 3D numpy array (mus thave same shape as img).
-    :return:  Numpy array listing candidates (z,y,x) positions.
-    """
-    masked_img = np.multiply(img_arr, mask)
-    masked_img[masked_img == 0] = 1
-    # Detect candidate blobs within a certain standard deviation
-    candidates = feature.blob_log(masked_img, min_sigma=1, max_sigma=2, threshold=0.5)
-
-    return candidates
-
-
 if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
-
     directory = 'Traindata_small'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
 
     for f in files:
-        if f != 'Traindata_small/train_2.mhd':
-            continue
+
         label = os.path.splitext(os.path.basename(f))[0]
         img = load_image(f)
 
@@ -269,16 +224,6 @@ if __name__ == '__main__':
         img_arr = get_image_array(resample_image_to_1mm(img))
         img_arr = standardize(img_arr)
 
-        print('Finding mask...')
-        mask_3d = get_lung_mask3d(img_arr)
-        print('Finding candidates...')
-        candidates = extract_candidate_nodules3d(img_arr, mask_3d)
-
-        #  Write to file
-        with open('{}_candidates.txt'.format(label), 'w') as f:
-            for nodule in candidates:
-                f.write(np.array_str(nodule) + '\n')
-
         # Display the training nodules and get the z-value to plot
         slice_index = img_arr.shape[0] // 2
         if label in training_nodules:
@@ -289,7 +234,7 @@ if __name__ == '__main__':
                 slice_index = int(z)
                 plt.imshow(img_arr[slice_index], cmap='gray')
                 plt.title('{} (slice index {})'.format(label, slice_index))
-                print('NODULE FOUND AT ({}, {}, {})'.format(x, y, z))
+                print('NODULE FOUND AT ({}, {})'.format(x, y))
                 circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 plt.gca().add_artist(circle)
                 plt.show()
