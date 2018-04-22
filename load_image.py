@@ -151,7 +151,7 @@ def get_lung_mask(img_arr):
     """
     Return an image mask that only highlights the lungs in the given image.
 
-    :param img_arr: Image 2d array to mask as numpy array.
+    :param img_arr: Image array to mask as numpy array.
     :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
     # Credit for some ideas:
@@ -169,13 +169,13 @@ def get_lung_mask(img_arr):
     # Dilate to get rid of specks in lung mask.
     dilated = cv2.dilate(filled, np.ones((10, 10)))
     # Erode to tighten border of mask.
-    eroded = cv2.erode(dilated, np.ones((3, 3)))
+    eroded = cv2.erode(dilated, np.ones((7, 7)))
     plt.imshow(eroded)
     plt.show()
     return eroded / 255
 
 
-def extract_candidate_nodules(img_arr, mask):
+def extract_candidate_nodules(img, mask):
     """
     Extract suspicious nodules from masked image.
 
@@ -186,13 +186,12 @@ def extract_candidate_nodules(img_arr, mask):
     masked_img = mask * img
     masked_img[masked_img == 0] = 1
     # Detect candidates blobs within a certain standard deviation
-    candidates = feature.blob_log(masked_img, min_sigma=1, max_sigma=4, threshold=0.2)
+    candidates = feature.blob_log(masked_img, min_sigma=0.5, max_sigma=2, threshold=0.3)
     # Remove blobs on edges
-    border = cv2.dilate(mask, np.ones((20, 20))) - cv2.erode(mask, np.ones((4, 4)))
+    border = cv2.dilate(mask, np.ones((20, 20))) - cv2.erode(mask, np.ones((6, 6)))
     candidates = [coord for coord in candidates if border[int(coord[0]), int(coord[1])] != 1]
     plt.imshow(masked_img)
     for coord in candidates:
-        # print(coord)
         x = coord[1]
         y = coord[0]
         variance = coord[2]  # Variance of intensity values
@@ -201,7 +200,6 @@ def extract_candidate_nodules(img_arr, mask):
         circle = plt.Circle((x, y), 1.414 * variance, color='r', fill=False)
         plt.gca().add_artist(circle)
     plt.show()
-    return candidates
 
 
 if __name__ == '__main__':
@@ -211,8 +209,6 @@ if __name__ == '__main__':
     training_nodules = load_nodule_csv('training_nodules.csv')
 
     for f in files:
-        if f != 'Traindata_small/train_13.mhd':
-            continue
         print(f)
         label = os.path.splitext(os.path.basename(f))[0]
         img = load_image(f)
