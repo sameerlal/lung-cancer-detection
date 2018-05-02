@@ -40,7 +40,7 @@ def get_lung_mask(img_arr_3d):
     im = _mc_filter(im, 7)
 
     lung_mask = util.get_image_array(im)
-    plot.plot_slices(lung_mask)
+    # plot.plot_slices(lung_mask)
     return lung_mask
 
 

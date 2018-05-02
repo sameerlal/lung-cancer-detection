@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
     for f in files:
         label = os.path.splitext(os.path.basename(f))[0]
-        if label != 'train_2':
+        if label != 'train_3':
             continue
         im = load_image(f)
 
