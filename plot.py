@@ -5,14 +5,16 @@ ECE 4250 Final Project.
 Brian Richard (bcr53), Gautam Mekkat (gm484), Sameer Lal (sjl328).
 April 21th, 2018.
 """
+import numpy as np
 import matplotlib.pyplot as plt
 
 
-def plot_slices(img_arr):
+def plot_slices(img_arr, show=True):
     """
     Plot each slice of a 3D image, showing one slice at a time (use a and d keys to switch between slices).
 
     :param img_arr: 3D image array to plot.
+    :param show: Whether or not to show the plot in addition to plotting the image.
     :return: None.
     """
     # Credit:
@@ -22,13 +24,16 @@ def plot_slices(img_arr):
     ax.img_arr = img_arr
     ax.index = 0
     print('showing image')
-    ax.imshow(img_arr[ax.index], cmap='gray')
+    vmin = np.min(img_arr)
+    vmax = np.max(img_arr)
+    ax.imshow(img_arr[ax.index], cmap='gray', vmin=vmin, vmax=vmax)
     ax.set_title('Current depth: {} (Press \'a\' or \'d\' to change)'.format(ax.index))
     print('calling mpl_connect')
     fig.canvas.mpl_connect('key_press_event', _process_key)
-    print('calling show')
-    plt.show()
-    print('finished show')
+    if show:
+        print('calling show')
+        plt.show()
+        print('finished show')
 
 
 def _process_key(event):

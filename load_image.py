@@ -139,6 +139,7 @@ if __name__ == '__main__':
         # Resample the image to appropriate spacing (1mm x 1mm x 1mm).
         resampled = resample_image_to_1mm(im)  # SimpleITK image
         img_arr = util.get_image_array(resampled)  # Numpy array
+        img_arr = util.standardize_and_remove_bg(img_arr)
 
         # Display the training nodules and get the z-value to plot
         lung_mask = mask_gen.get_lung_mask(img_arr)
@@ -155,10 +156,9 @@ if __name__ == '__main__':
                 circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 plt.gca().add_artist(circle)
                 plt.show()
-                nodule_finder.extract_candidate_nodules(img_arr[slice_index], lung_mask[slice_index])
         else:
             print('NO NODULE FOUND')
             plt.imshow(img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
             plt.show()
-            nodule_finder.extract_candidate_nodules(img_arr[slice_index], lung_mask[slice_index])
+        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)

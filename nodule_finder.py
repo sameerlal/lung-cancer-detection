@@ -10,6 +10,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from skimage import feature
+import SimpleITK as sitk
+
+import util
+import plot
 
 
 def extract_candidate_nodules(img, mask):
@@ -37,3 +41,31 @@ def extract_candidate_nodules(img, mask):
         circle = plt.Circle((x, y), 1.414 * variance, color='r', fill=False)
         plt.gca().add_artist(circle)
     plt.show()
+
+
+def extract_candidate_nodules_3d(img_arr, mask):
+    """
+    Extract suspicious nodules from masked image.
+
+    :param img_arr: Image array as 3D numpy array.
+    :param mask: Image mask as 3D numpy array (must have same shape as img_arr).
+    :return: Numpy array displaying candidate nodules.
+    """
+    lower = 0.1
+    upper = 0.7
+    img = util.standardize(img_arr)
+    binary = (img < upper) * (img > lower)
+    masked_img = binary * mask
+    rescaled = util.rescale(masked_img, min=0, max=255).astype('uint8')
+    im = sitk.GetImageFromArray(rescaled)
+    cc = sitk.ConnectedComponent(im)
+    cc = sitk.RelabelComponent(cc, minimumObjectSize=30, sortByObjectSize=True)
+    stats = sitk.LabelIntensityStatisticsImageFilter()
+    stats.Execute(cc, im)
+    # for label in stats.GetLabels():
+    #     print("Label: {} :: Size: {}".format(label, stats.GetPhysicalSize(label)))
+    label_map = sitk.DoubleDoubleMap()
+    for i in range(6):
+        label_map[i] = 0
+    cc = sitk.ChangeLabel(cc, label_map)
+    plot.plot_slices(util.get_image_array(cc) > 0)

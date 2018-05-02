@@ -19,27 +19,28 @@ def get_lung_mask(img_arr_3d):
     """
     Return an image mask that only highlights the lungs in the given image.
 
-    :param img_arr_3d: 3D image array to mask as numpy array.
+    :param img_arr_3d: 3D image array to mask as numpy array. Should be standardized for best results.
     :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
-    # Credit for some ideas:
-    standardized = util.standardize_and_remove_bg(img_arr_3d)
-    rescaled = util.rescale(standardized, min=0, max=255).astype('uint8')
+    rescaled = util.rescale(img_arr_3d, min=0, max=255).astype('uint8')
 
     # Use Otsu's method to get black and white image (differentiates lung and bone).
     im = _otsu_filter(sitk.GetImageFromArray(rescaled))
 
-    # Morphological closing to get rid of black specks in lung
-    im = _mc_filter(im, 4)
+    # Morphological opening to get rid of graininess
+    im = _mo_filter(im, 1)
 
-    # Connected component threshold to get only lungs and not the background
-    im = _cc_filter(im)
+    # Morphological closing to get rid of black specks in lung
+    im = _mc_filter(im, 5)
+
+    # Connected threshold to get only lungs and not the background
+    im = _ct_filter(im)
 
     # Morphological closing to get rid of black specks in lung
     im = _mc_filter(im, 7)
 
     lung_mask = util.get_image_array(im)
-    plot.plot_slices(img_arr_3d * lung_mask)
+    plot.plot_slices(lung_mask)
     return lung_mask
 
 
@@ -54,9 +55,9 @@ def _otsu_filter(im):
     return otsu_filter.Execute(im)
 
 
-def _cc_filter(im):
+def _ct_filter(im):
     """
-    Execute connected threshold filter on the given image.
+    Execute connected threshold filter on the given image using lung locations as seed points.
 
     :param im: SimpleITK image.
     :return: Filtered image.
@@ -78,3 +79,16 @@ def _mc_filter(im, kernel_radius):
     mc = sitk.BinaryMorphologicalClosingImageFilter()
     mc.SetKernelRadius(kernel_radius)
     return mc.Execute(im)
+
+
+def _mo_filter(im, kernel_radius):
+    """
+    Execute morphological opening on the given image.
+
+    :param im: SimpleITK image.
+    :param kernel_radius: The kernel radius.
+    :return: Filtered image.
+    """
+    mo = sitk.BinaryMorphologicalOpeningImageFilter()
+    mo.SetKernelRadius(kernel_radius)
+    return mo.Execute(im)
