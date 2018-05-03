@@ -62,7 +62,6 @@ def extract_candidate_nodules_3d(img_arr, mask):
     label_props = skimage.measure.regionprops(labels)
     label_props = sorted(label_props, key=lambda prop: prop.area)
     for prop in label_props:
-        print(prop.label, prop.area, prop.bbox)
         xd = prop.bbox[3] - prop.bbox[0]
         yd = prop.bbox[4] - prop.bbox[1]
         zd = prop.bbox[5] - prop.bbox[2]
@@ -70,11 +69,13 @@ def extract_candidate_nodules_3d(img_arr, mask):
         radius = diameter / 2
         volume = 4 / 3 * np.pi * radius ** 3
         fill_factor = prop.area / volume
-        print('\tfill factor:', fill_factor)
-        print('\t', prop.centroid, '\n')
         # Get rid of non-spherical components (e.g., blood vessels, noise, etc.)
         if fill_factor < 0.4:
             labels[labels == prop.label] = 0
+        else:
+            print(prop.label, prop.area, prop.bbox)
+            print('\tfill factor:', fill_factor)
+            print('\t', prop.centroid, '\n')
     img = labels > 0
     new_labels = skimage.measure.label(img)
     print(np.max(new_labels), 'CANDIDATE NODULES FOUND')
