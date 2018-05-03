@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import cv2
 from skimage import feature
-import SimpleITK as sitk
+import skimage
 
 import util
 import plot
@@ -51,21 +51,19 @@ def extract_candidate_nodules_3d(img_arr, mask):
     :param mask: Image mask as 3D numpy array (must have same shape as img_arr).
     :return: Numpy array displaying candidate nodules.
     """
-    lower = 0.6
-    upper = 1
     img = util.standardize(img_arr)
     masked_img = img * mask
-    binary = ((masked_img < upper) * (masked_img > lower)).astype(int)
-    rescaled = util.rescale(binary, min=0, max=255).astype('uint8')
-    im = sitk.GetImageFromArray(rescaled)
-    cc = sitk.ConnectedComponent(im)
-    cc = sitk.RelabelComponent(cc, minimumObjectSize=30, sortByObjectSize=True)
-    stats = sitk.LabelIntensityStatisticsImageFilter()
-    stats.Execute(cc, im)
-    label_map = sitk.DoubleDoubleMap()
-    for label in stats.GetLabels():
-        print("Label: {} :: Size: {}".format(label, stats.GetPhysicalSize(label)))
-        if stats.GetPhysicalSize(label) > 1000:
-            label_map[label] = 0
-    cc = sitk.ChangeLabel(cc, label_map)
-    plot.plot_slices(util.get_image_array(cc) > 0)
+    masked_img[masked_img < 0] = 0
+    threshold = skimage.filters.threshold_otsu(masked_img)
+    binary = masked_img > threshold
+    # Get rid of thin paths
+    binary = skimage.morphology.binary_opening(binary, skimage.morphology.ball(1))
+    labels = skimage.measure.label(binary)
+    label_counts = np.bincount(labels.flatten())  # index = label, value = number of pixels with that label
+    largest_components = np.argwhere(label_counts > 1000)
+    labels[np.isin(labels, largest_components)] = 0
+    labels[labels != 0] = 1
+    # Get number of candidate nodules
+    new_labels = skimage.measure.label(labels)
+    print(np.bincount(new_labels.flatten()).size, 'CANDIDATES FOUND')
+    plot.plot_slices(labels)

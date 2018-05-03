@@ -8,6 +8,7 @@ March 25th, 2018.
 
 import os
 import csv
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import SimpleITK as sitk
@@ -124,10 +125,11 @@ if __name__ == '__main__':
     directory = 'Traindata_small'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
+    train = sys.argv[1]
 
     for f in files:
         label = os.path.splitext(os.path.basename(f))[0]
-        if label != 'train_3':
+        if label != train:
             continue
         im = load_image(f)
 
@@ -144,6 +146,7 @@ if __name__ == '__main__':
         # Display the training nodules and get the z-value to plot
         lung_mask = mask_gen.get_lung_mask(img_arr)
         slice_index = img_arr.shape[0] // 2
+        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)
         if label in training_nodules:
             nodules = training_nodules[label]
             for nodule in nodules:
@@ -161,4 +164,3 @@ if __name__ == '__main__':
             plt.imshow(img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
             plt.show()
-        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)
