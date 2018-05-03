@@ -146,7 +146,6 @@ if __name__ == '__main__':
         # Display the training nodules and get the z-value to plot
         lung_mask = mask_gen.get_lung_mask(img_arr)
         slice_index = img_arr.shape[0] // 2
-        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)
         if label in training_nodules:
             nodules = training_nodules[label]
             for nodule in nodules:
@@ -164,3 +163,4 @@ if __name__ == '__main__':
             plt.imshow(img_arr[slice_index], cmap='gray')
             plt.title('{} (slice index {})'.format(label, slice_index))
             plt.show()
+        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)

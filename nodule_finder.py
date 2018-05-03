@@ -59,11 +59,23 @@ def extract_candidate_nodules_3d(img_arr, mask):
     # Get rid of thin paths
     binary = skimage.morphology.binary_opening(binary, skimage.morphology.ball(1))
     labels = skimage.measure.label(binary)
-    label_counts = np.bincount(labels.flatten())  # index = label, value = number of pixels with that label
-    largest_components = np.argwhere(label_counts > 1000)
-    labels[np.isin(labels, largest_components)] = 0
-    labels[labels != 0] = 1
-    # Get number of candidate nodules
-    new_labels = skimage.measure.label(labels)
-    print(np.bincount(new_labels.flatten()).size, 'CANDIDATES FOUND')
-    plot.plot_slices(labels)
+    label_props = skimage.measure.regionprops(labels)
+    label_props = sorted(label_props, key=lambda prop: prop.area)
+    for prop in label_props:
+        print(prop.label, prop.area, prop.bbox)
+        xd = prop.bbox[3] - prop.bbox[0]
+        yd = prop.bbox[4] - prop.bbox[1]
+        zd = prop.bbox[5] - prop.bbox[2]
+        diameter = (xd + yd + zd) / 3
+        radius = diameter / 2
+        volume = 4 / 3 * np.pi * radius ** 3
+        fill_factor = prop.area / volume
+        print('\tfill factor:', fill_factor)
+        print('\t', prop.centroid, '\n')
+        # Get rid of non-spherical components (e.g., blood vessels, noise, etc.)
+        if fill_factor < 0.4:
+            labels[labels == prop.label] = 0
+    img = labels > 0
+    new_labels = skimage.measure.label(img)
+    print(np.max(new_labels), 'CANDIDATE NODULES FOUND')
+    plot.plot_slices(img)
