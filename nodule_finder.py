@@ -49,9 +49,10 @@ def extract_candidate_nodules_3d(img_arr, mask):
 
     :param img_arr: Image array as 3D numpy array.
     :param mask: Image mask as 3D numpy array (must have same shape as img_arr).
-    :return: Numpy array displaying candidate nodules.
+    :return: List of candidate nodules. Each candidate nodule is in the format:
+                [centroid (x, y, z), volume, fill_factor]
     """
-    img = util.standardize(img_arr)
+    img = util.rescale(img_arr, min=0, max=1)
     masked_img = img * mask
     masked_img[masked_img < 0] = 0
     threshold = skimage.filters.threshold_otsu(masked_img)
@@ -61,6 +62,7 @@ def extract_candidate_nodules_3d(img_arr, mask):
     labels = skimage.measure.label(binary)
     label_props = skimage.measure.regionprops(labels)
     label_props = sorted(label_props, key=lambda prop: prop.area)
+    output = []
     for prop in label_props:
         xd = prop.bbox[3] - prop.bbox[0]
         yd = prop.bbox[4] - prop.bbox[1]
@@ -69,14 +71,18 @@ def extract_candidate_nodules_3d(img_arr, mask):
         radius = diameter / 2
         volume = 4 / 3 * np.pi * radius ** 3
         fill_factor = prop.area / volume
+        center = prop.centroid[::-1]
         # Get rid of non-spherical components (e.g., blood vessels, noise, etc.)
         if fill_factor < 0.4:
-            labels[labels == prop.label] = 0
+            # labels[labels == prop.label] = 0
+            print(prop.label, prop.area, prop.bbox)
+            print('\tfill factor:', fill_factor)
+            print('\t', center, '\n')
         else:
             print(prop.label, prop.area, prop.bbox)
             print('\tfill factor:', fill_factor)
-            print('\t', prop.centroid, '\n')
-    img = labels > 0
-    new_labels = skimage.measure.label(img)
-    print(np.max(new_labels), 'CANDIDATE NODULES FOUND')
-    plot.plot_slices(img)
+            print('\t', center, '\n')
+            row = [center, prop.area, fill_factor]
+            output.append(row)
+    plot.plot_slices(labels)
+    return output

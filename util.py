@@ -53,3 +53,11 @@ def standardize_and_remove_bg(img_arr):
     standardized = standardize(img_arr)
     standardized[standardized < 0] = 0
     return standardized
+
+
+def distance(point1, point2):
+    """Return the distance between two (x, y, z) points."""
+    xd = point1[0] - point2[0]
+    yd = point1[1] - point2[1]
+    zd = point1[2] - point2[2]
+    return (xd ** 2 + yd ** 2 + zd ** 2) ** 0.5

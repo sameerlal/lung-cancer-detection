@@ -16,6 +16,7 @@ import SimpleITK as sitk
 import util
 import mask_gen
 import nodule_finder
+import classifier
 
 
 def load_image(image_file):
@@ -125,18 +126,20 @@ if __name__ == '__main__':
     directory = 'Traindata_small'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
-    train = sys.argv[1]
 
-    for f in files:
+    candidates = []
+    training_output = []
+    for f in files[:8]:
         label = os.path.splitext(os.path.basename(f))[0]
-        if label != train:
+        if label != 'train_10':
             continue
+        print(label)
         im = load_image(f)
 
-        print('Image Spacing (in mm):', get_spacing(im))
-        print('Image Origin (in mm):', get_origin(im))
-        print('Voxel Spacing (in mm):', get_slice_spacing(im))
-        print('Slice Thickness (in mm):', get_slice_thickness(im))
+        # print('Image Spacing (in mm):', get_spacing(im))
+        # print('Image Origin (in mm):', get_origin(im))
+        # print('Voxel Spacing (in mm):', get_slice_spacing(im))
+        # print('Slice Thickness (in mm):', get_slice_thickness(im))
 
         # Resample the image to appropriate spacing (1mm x 1mm x 1mm).
         resampled = resample_image_to_1mm(im)  # SimpleITK image
@@ -146,21 +149,29 @@ if __name__ == '__main__':
         # Display the training nodules and get the z-value to plot
         lung_mask = mask_gen.get_lung_mask(img_arr)
         slice_index = img_arr.shape[0] // 2
+        training_nodule_locations = []
         if label in training_nodules:
             nodules = training_nodules[label]
             for nodule in nodules:
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
+                training_nodule_locations.append([x, y, z])
                 slice_index = int(z)
                 plt.imshow(img_arr[slice_index], cmap='gray')
                 plt.title('{} (slice index {})'.format(label, slice_index))
-                print('NODULE FOUND AT ({}, {})'.format(x, y))
+                print('NODULE FOUND AT ({}, {}, {})'.format(x, y, z))
                 circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 plt.gca().add_artist(circle)
                 plt.show()
         else:
-            print('NO NODULE FOUND')
-            plt.imshow(img_arr[slice_index], cmap='gray')
-            plt.title('{} (slice index {})'.format(label, slice_index))
-            plt.show()
-        nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask)
+            # print('NO NODULE FOUND')
+            # plt.imshow(img_arr[slice_index], cmap='gray')
+            # plt.title('{} (slice index {})'.format(label, slice_index))
+            # plt.show()
+            pass
+        candidates.extend(nodule_finder.extract_candidate_nodules_3d(img_arr, lung_mask))
+        training_output.extend(classifier.generate_training_output(candidates, training_nodule_locations))
+
+    # We now have our training data
+    # print('Classifying now...')
+    # classifier.classifier(candidates, training_output)
