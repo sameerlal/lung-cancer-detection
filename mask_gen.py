@@ -7,7 +7,8 @@ April 21th, 2018.
 """
 
 import numpy as np
-import skimage
+import skimage.filters
+import skimage.morphology
 
 import util
 import plot
@@ -20,10 +21,11 @@ def get_lung_mask(img_arr_3d):
     """
     Return an image mask that only highlights the lungs in the given image.
 
-    :param img_arr_3d: 3D image array to mask as numpy array. Should be standardized for best results.
+    :param img_arr_3d: 3D image array to mask as numpy array.
     :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
-    rescaled = util.rescale(img_arr_3d, min=0, max=255).astype('uint8')
+    img_arr = util.standardize_and_remove_bg(img_arr_3d)
+    rescaled = util.rescale(img_arr, min=0, max=255).astype('uint8')
 
     # Use Otsu's method to get black and white image (differentiates lung and bone).
     threshold = skimage.filters.threshold_otsu(rescaled)
@@ -47,4 +49,7 @@ def get_lung_mask(img_arr_3d):
 
     # Morphological closing to get rid of all black specks in lung
     mask = skimage.morphology.binary_closing(mask, skimage.morphology.ball(7))
+
+    # Dilate by 1 to get edges of lung
+    mask = skimage.morphology.binary_dilation(mask, skimage.morphology.ball(1))
     return mask
