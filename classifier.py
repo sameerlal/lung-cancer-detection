@@ -17,15 +17,17 @@ def generate_training_output(candidate_nodules, training_nodules):
     for candidate in candidate_nodules:
         output = 0
         for training in training_nodules:
-            if util.distance(candidate[0], training) < 3:
+            if util.distance(candidate[:3], training) < 3:
                 output = 1
                 break
         y.append(output)
+    print(len(candidate_nodules), len(y))
     return y
 
 
 def classifier(input, output):
     """Train and return classifier using KNN."""
+    print(len(input), len(output))
     with open('training.csv', 'w') as f:
         for i in range(len(input)):
             line = ', '.join([str(a) for a in input[i]]) + ', ' + str(output[i])

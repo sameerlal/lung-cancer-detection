@@ -24,7 +24,8 @@ def get_lung_mask(img_arr_3d):
     :param img_arr_3d: 3D image array to mask as numpy array.
     :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
-    img_arr = util.standardize_and_remove_bg(img_arr_3d)
+    img_arr = img_arr_3d
+    img_arr = util.standardize_and_remove_bg(img_arr)
     rescaled = util.rescale(img_arr, min=0, max=255).astype('uint8')
 
     # Use Otsu's method to get black and white image (differentiates lung and bone).
@@ -32,7 +33,7 @@ def get_lung_mask(img_arr_3d):
     binary = rescaled < threshold
 
     # Morphological opening to get rid of graininess
-    mask = skimage.morphology.binary_opening(binary, skimage.morphology.ball(1))
+    mask = skimage.morphology.binary_opening(binary, skimage.morphology.ball(2))
 
     # Morphological closing to get rid of some black specks in lung
     mask = skimage.morphology.binary_closing(mask, skimage.morphology.ball(5))

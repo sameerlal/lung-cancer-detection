@@ -112,3 +112,6 @@ Traindata_small/
 
 # CSV files
 *.csv
+
+# PKL files
+*.pkl
