@@ -72,4 +72,6 @@ def average_intensity(img, coord, diameter):
   :return: Image with standardized values and background removed.
   """
   radius = int(diameter/2)
+  for i in range(len(coord)):
+  	coord[i] = int[i]
   return img[coord[0]-radius:coord[0]+radius, coord[1]-radius:coord[1]+radius, coord[2]-radius:coord[2]+radius].mean()
