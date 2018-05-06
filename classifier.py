@@ -43,7 +43,7 @@ def classifier(input, output):
             f.write(line)
             f.write('\n')
     try:
-        knn = sklearn.externals.joblib.load(open('classifier.pkl'))
+        knn = sklearn.externals.joblib.load('classifier.pkl')
     except (OSError, IOError) as e:
         knn = sklearn.neighbors.KNeighborsClassifier(n_neighbors=5)
     knn.fit(input, output)
