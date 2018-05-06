@@ -155,7 +155,7 @@ if __name__ == '__main__':
             for nodule in nodules:
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
-                training_nodule_locations.append([x, y, z, nodule[3]])
+                training_nodule_locations.append([x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))

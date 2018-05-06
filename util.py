@@ -61,3 +61,15 @@ def distance(point1, point2):
     yd = point1[1] - point2[1]
     zd = point1[2] - point2[2]
     return (xd ** 2 + yd ** 2 + zd ** 2) ** 0.5
+
+def average_intensity(img, coord, diameter):
+  """
+  Return the average intensity of a nodule.
+
+  :param img: N-dimensional image as numpy array.
+  :param coord: The coordinates of the nodules, (x, y, z).
+  :param radius: The approximate radius of the nodule
+  :return: Image with standardized values and background removed.
+  """
+  radius = int(diameter/2)
+  return img[coord[0]-radius:coord[0]+radius, coord[1]-radius:coord[1]+radius, coord[2]-radius:coord[2]+radius].mean()

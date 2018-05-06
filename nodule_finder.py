@@ -51,7 +51,8 @@ def extract_candidate_nodules_3d(img_arr, mask):
             # if abs(point[1] - slice_index) < 2:
                 # circle = plt.Circle((point[3], point[2]), point[0] * 3 ** 0.5, color='r', fill=False)
                 # plt.gca().add_artist(circle)
-            candidate = point[::-1]
+            candidate = list(point[::-1])
+            candidate.append(util.average_intensity(standardized, point[:0:-1], point[0]))
             candidates.append(candidate)
     print('Total of', len(candidates), 'candidates found.')
     # plt.show()
