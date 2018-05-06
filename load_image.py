@@ -132,8 +132,6 @@ if __name__ == '__main__':
     training_output = []
     for f in files[:8]:
         label = os.path.splitext(os.path.basename(f))[0]
-        if label != 'train_11':
-            continue
         print(label)
         im = load_image(f)
 

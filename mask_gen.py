@@ -13,8 +13,8 @@ import skimage.morphology
 import util
 import plot
 
-LEFT_LUNG_GUESS = [0.5, 0.5, 0.25]  # (z, y, x)
-RIGHT_LUNG_GUESS = [0.5, 0.5, 0.75]
+LEFT_LUNG_GUESS = [0.6, 0.5, 0.25]  # (z, y, x)
+RIGHT_LUNG_GUESS = [0.6, 0.5, 0.75]
 
 
 def get_lung_mask(img_arr_3d):
@@ -40,12 +40,19 @@ def get_lung_mask(img_arr_3d):
 
     # Connected threshold to get only lungs and not the background
     seed = np.zeros(mask.shape)
+    seed_radius = 4
     left_lung_position = tuple(int(mask.shape[i] * LEFT_LUNG_GUESS[i]) for i in range(len(mask.shape)))
     right_lung_position = tuple(int(mask.shape[i] * RIGHT_LUNG_GUESS[i]) for i in range(len(mask.shape)))
-    print(left_lung_position, mask[left_lung_position])
-    print(right_lung_position, mask[right_lung_position])
-    seed[left_lung_position] = 1
-    seed[right_lung_position] = 1
+    for seed_coord in [left_lung_position, right_lung_position]:
+        z1 = seed_coord[0] - seed_radius
+        y1 = seed_coord[1] - seed_radius
+        x1 = seed_coord[2] - seed_radius
+
+        z2 = seed_coord[0] + seed_radius
+        y2 = seed_coord[1] + seed_radius
+        x2 = seed_coord[2] + seed_radius
+        seed[z1:z2, y1:y2, x1:x2] = mask[z1:z2, y1:y2, x1:x2]
+        print(seed_coord, 1 in seed[z1:z2, y1:y2, x1:x2])
     mask = skimage.morphology.reconstruction(seed, mask)
 
     # Morphological closing to get rid of all black specks in lung
