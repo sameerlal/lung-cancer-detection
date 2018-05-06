@@ -39,10 +39,10 @@ def extract_candidate_nodules_3d(img_arr, mask):
             target_slice = len(log_buffer) - 2
             peaks = skimage.feature.peak_local_max(np.asarray(log_buffer), min_distance=prev_sigma, threshold_abs=0.2, exclude_border=False)
             peaks = peaks[peaks[:, 0] == target_slice]  # If we have 3 logs, pick index 1. If we have 2 logs (only occurs during the second iteration), pick index 0.
-            peaks[:, 0] = prev_sigma  # The target slice corresponds to the previous sigma value
+            peaks[:, 0] = 2 * prev_sigma * 3 ** 0.5  # Diameter
             maxima.extend(peaks)
             log_buffer = log_buffer[-2:]
-        # TODO get last sigma value as well
+        # TODO get last sigma value as well.
     candidates = []
     # slice_index = 278
     # plt.imshow(img_arr[slice_index])

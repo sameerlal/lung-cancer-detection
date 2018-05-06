@@ -124,14 +124,16 @@ def resample_image_to_1mm(im):
 
 if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
-    directory = 'Traindata_small'
+    directory = 'Traindata'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
 
     candidates = []
     training_output = []
-    for f in files[:8]:
+    for f in files:
         label = os.path.splitext(os.path.basename(f))[0]
+        if label != 'train_12':
+            continue
         print(label)
         im = load_image(f)
 
@@ -153,7 +155,7 @@ if __name__ == '__main__':
             for nodule in nodules:
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
-                training_nodule_locations.append([x, y, z])
+                training_nodule_locations.append([x, y, z, nodule[3]])
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))
@@ -169,8 +171,9 @@ if __name__ == '__main__':
             pass
         lung_mask = mask_gen.get_lung_mask(lung_scan)
         candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, lung_mask)
-        candidates.extend(candidate_nodules)
-        training_output.extend(classifier.generate_training_output(candidate_nodules, training_nodule_locations))
+        x, y = classifier.generate_training_output(candidate_nodules, training_nodule_locations)
+        candidates.extend(x)
+        training_output.extend(y)
         print(len(candidates), len(training_output))
 
     # We now have our training data
