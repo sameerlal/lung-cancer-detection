@@ -123,6 +123,18 @@ def resample_image_to_1mm(im):
     return sitk.Resample(im, reference_image)
 
 
+def load_scan_to_array(lung_scan_filename):
+    """
+    Load the lung scan, resample to 1mm, and convert to a numpy array.
+
+    :param lung_scan_filename: Filename of the lung scan.
+    :return: A numpy array containing the resampled scan.
+    """
+    im = load_image(lung_scan_filename)
+    resampled = resample_image_to_1mm(im)
+    return util.get_image_array(resampled)
+
+
 if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
     directory = 'Traindata'
@@ -154,7 +166,8 @@ if __name__ == '__main__':
             for nodule in nodules:
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
-                training_nodule_locations.append([x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
+                training_nodule_locations.append(
+                    [x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))

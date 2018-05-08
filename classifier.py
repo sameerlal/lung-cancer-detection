@@ -6,8 +6,12 @@ Brian Richard (bcr53), Gautam Mekkat (gm484), Sameer Lal (sjl328).
 May 3rd, 2018.
 """
 
+import sys
+
+import numpy as np
 import sklearn.neighbors
-import sklearn.externals
+import sklearn.linear_model
+import sklearn.externals.joblib
 import util
 
 
@@ -42,9 +46,21 @@ def classifier(input, output):
             line = ', '.join([str(a) for a in input[i]]) + ', ' + str(output[i])
             f.write(line)
             f.write('\n')
-    try:
-        knn = sklearn.externals.joblib.load('classifier.pkl')
-    except (OSError, IOError) as e:
-        knn = sklearn.neighbors.KNeighborsClassifier(n_neighbors=5)
+    knn = sklearn.linear_model.LogisticRegression()
     knn.fit(input, output)
     sklearn.externals.joblib.dump(knn, 'classifier.pkl')
+
+
+def load_data_from_csv(csv_filename):
+    """Train the classifier from a csv file."""
+    array = np.genfromtxt(csv_filename, delimiter=',')
+    input = array[:, :-1]
+    output = array[:, -1]
+    return input, output
+
+
+if __name__ == '__main__':
+    training_csv = sys.argv[1]
+    input, output = load_data_from_csv(training_csv)
+    classifier(input, output)
+    print('Wrote classifier to classifier.pkl')
