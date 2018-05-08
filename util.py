@@ -62,6 +62,21 @@ def distance(point1, point2):
     zd = point1[2] - point2[2]
     return (xd ** 2 + yd ** 2 + zd ** 2) ** 0.5
 
+
+def get_bounding_box(img_arr, center, radius):
+    """Get a bounding box from the img array using the given center and radius."""
+    radius = int(radius)
+    img = np.asarray(img_arr)
+    center = np.asarray(center, dtype=int)
+    z1 = max(0, center[2] - radius)
+    z2 = min(img.shape[0], center[2] + radius)
+    y1 = max(0, center[1] - radius)
+    y2 = min(img.shape[1], center[1] + radius)
+    x1 = max(0, center[0] - radius)
+    x2 = min(img.shape[2], center[0] + radius)
+    return img[z1:z2, y1:y2, x1:x2]
+
+
 def average_intensity(img, coord, diameter):
     """
     Return the average intensity of a nodule.
@@ -72,12 +87,4 @@ def average_intensity(img, coord, diameter):
     :return: Image with standardized values and background removed.
     """
     radius = int(diameter / 2)
-    img = np.asarray(img)
-    coord = np.asarray(coord, dtype=int)
-    z1 = max(0, coord[2] - radius)
-    z2 = min(img.shape[0], coord[2] + radius)
-    y1 = max(0, coord[1] - radius)
-    y2 = min(img.shape[1], coord[1] + radius)
-    x1 = max(0, coord[0] - radius)
-    x2 = min(img.shape[2], coord[0] + radius)
-    return np.mean(img[z1:z2, y1:y2, x1:x2])
+    return np.mean(get_bounding_box(img, coord, radius))

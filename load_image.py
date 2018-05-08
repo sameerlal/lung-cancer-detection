@@ -143,7 +143,7 @@ if __name__ == '__main__':
 
     candidates = []
     training_output = []
-    for f in files[:9]:
+    for f in files[1:2]:
         label = os.path.splitext(os.path.basename(f))[0]
         print(label)
         im = load_image(f)
@@ -166,17 +166,20 @@ if __name__ == '__main__':
             for nodule in nodules:
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
-                training_nodule_locations.append(
-                    [x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
+                radius = nodule[3] / 2
+                box = util.get_bounding_box(lung_scan, (x, y, z), radius)
+                box = box[int(box.shape[0] // 2)]  # Get middle slice
+                # training_nodule_locations.append([x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
+                training_nodule_locations.append(dict(center=(x,y,z), radius=radius, box=box))
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))
-                print('NODULE FOUND AT ({}, {}, {})'.format(x, y, z))
+                print('Training nodule at ({}, {}, {}).'.format(x, y, z))
                 # circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 # plt.gca().add_artist(circle)
                 # plt.show()
         else:
-            print('NO NODULES FOUND')
+            print('No training nodules.')
             # plt.imshow(img_arr[slice_index], cmap='gray')
             # plt.title('{} (slice index {})'.format(label, slice_index))
             # plt.show()

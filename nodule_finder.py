@@ -38,10 +38,14 @@ def extract_candidate_nodules_3d(img_arr, mask):
             # if abs(point[1] - slice_index) < 2:
                 # circle = plt.Circle((point[3], point[2]), point[0] // 2, color='r', fill=False)
                 # plt.gca().add_artist(circle)
-            candidate = list(point[::-1])
-            candidate.append(util.average_intensity(img_arr, point[:0:-1], point[0]))
-            candidates.append(candidate)
-    plt.show()
+            # candidate = list(point[::-1])
+            coord = point[:0:-1]
+            radius = point[0] / 2
+            box = util.get_bounding_box(img_arr, coord, int(radius))
+            box = box[int(box.shape[0] // 2)]  # Get middle slice
+            # candidate.append(util.average_intensity(img_arr, point[:0:-1], point[0]))
+            candidates.append(dict(center=coord, radius=radius, box=box))
+    # plt.show()
     return candidates
 
 
@@ -57,7 +61,9 @@ def blob_log(img_arr, min_sigma=2, max_sigma=20, num_sigma=5, threshold=0.2, min
         scale_normalized = laplace * sigma ** 2  # scale normalized
         log.append(scale_normalized)
     peaks = skimage.feature.peak_local_max(np.asarray(log), threshold_abs=threshold, min_distance=min_distance, exclude_border=False)
-    peaks[:, 0] = 2 * sigmas[peaks[:, 0]] * 3 ** 0.5  # Diameter
+    diameters = 2 * sigmas[peaks[:, 0]] * 3 ** 0.5
+    peaks = np.asarray(peaks, dtype=float)  # Allow for floating point values
+    peaks[:, 0] = diameters
     return peaks
 
 

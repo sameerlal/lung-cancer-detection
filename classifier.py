@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import sklearn.neighbors
 import sklearn.linear_model
+import sklearn.neural_network
 import sklearn.externals.joblib
 import util
 
@@ -18,37 +19,38 @@ import util
 def generate_training_output(candidate_nodules, training_nodules):
     """Generate input to the classifier using the generated candidate nodules and training nodules."""
     y = []
-    found_training = set()
+    found_training = []
     for candidate in candidate_nodules:
         output = 0
         for training in training_nodules:
-            if util.distance(candidate[:3], training[:3]) < candidate[3] / 2:
-                found_training.add(tuple(training))
+            if util.distance(candidate['center'], training['center']) < training['radius']:
+                found_training.append(training)
                 output = 1
                 break
         y.append(output)
     print(len(candidate_nodules), len(y))
-    not_found = [nodule for nodule in training_nodules if tuple(nodule) not in found_training]
+    not_found = [nodule['box'] for nodule in training_nodules if nodule not in found_training]
     if len(not_found) > 0:
         for nodule in not_found:
-            print('**Not found:', nodule)
-    x = candidate_nodules
+            print('** Not found:', nodule)
+    x = [nodule['box'] for nodule in candidate_nodules]
     x.extend(not_found)
     y.extend([1] * len(not_found))
     return x, y
 
 
 def classifier(input, output):
-    """Train and return classifier using KNN."""
+    """Train and return classifier using CNNs."""
     print(len(input), len(output))
+    model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(10, 10, 4))
+    x = []
     with open('training.csv', 'w') as f:
         for i in range(len(input)):
-            line = ', '.join([str(a) for a in input[i]]) + ', ' + str(output[i])
+            row = np.array(input[i]).flatten()
+            line = ', '.join([str(a) for a in row]) + ', ' + str(output[i])
+            x.append(row)
             f.write(line)
             f.write('\n')
-    knn = sklearn.linear_model.LogisticRegression()
-    knn.fit(input, output)
-    sklearn.externals.joblib.dump(knn, 'classifier.pkl')
 
 
 def load_data_from_csv(csv_filename):
