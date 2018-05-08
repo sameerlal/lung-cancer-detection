@@ -24,10 +24,8 @@ def get_lung_mask(img_arr_3d):
     :param img_arr_3d: 3D image array to mask as numpy array.
     :return: Numpy array of 1s and 0s. 1 means that a lung is at the corresponding location in the given image.
     """
-    img_arr = img_arr_3d
-    img_arr = util.standardize_and_remove_bg(img_arr)
+    img_arr = util.standardize_and_remove_bg(img_arr_3d)
     rescaled = util.rescale(img_arr, min=0, max=255).astype('uint8')
-
     # Use Otsu's method to get black and white image (differentiates lung and bone).
     threshold = skimage.filters.threshold_otsu(rescaled)
     binary = rescaled < threshold
@@ -35,12 +33,9 @@ def get_lung_mask(img_arr_3d):
     # Morphological opening to get rid of graininess
     mask = skimage.morphology.binary_opening(binary, skimage.morphology.ball(2))
 
-    # Morphological closing to get rid of some black specks in lung
-    mask = skimage.morphology.binary_closing(mask, skimage.morphology.ball(5))
-
     # Connected threshold to get only lungs and not the background
     seed = np.zeros(mask.shape)
-    seed_radius = 4
+    seed_radius = 10
     left_lung_position = tuple(int(mask.shape[i] * LEFT_LUNG_GUESS[i]) for i in range(len(mask.shape)))
     right_lung_position = tuple(int(mask.shape[i] * RIGHT_LUNG_GUESS[i]) for i in range(len(mask.shape)))
     for seed_coord in [left_lung_position, right_lung_position]:
@@ -53,11 +48,12 @@ def get_lung_mask(img_arr_3d):
         x2 = seed_coord[2] + seed_radius
         seed[z1:z2, y1:y2, x1:x2] = mask[z1:z2, y1:y2, x1:x2]
         print(seed_coord, 1 in seed[z1:z2, y1:y2, x1:x2])
+
     mask = skimage.morphology.reconstruction(seed, mask)
 
-    # Morphological closing to get rid of all black specks in lung
-    mask = skimage.morphology.binary_closing(mask, skimage.morphology.ball(7))
-
-    # Dilate by 1 to get edges of lung
-    mask = skimage.morphology.binary_dilation(mask, skimage.morphology.ball(1))
+    # Fake morphological closing to get rid of all black specks in lung
+    for i in range(4):
+        mask = skimage.morphology.binary_dilation(mask, skimage.morphology.ball(2))
+    for i in range(3):
+        mask = skimage.morphology.binary_erosion(mask, skimage.morphology.ball(2))
     return mask

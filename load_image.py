@@ -8,6 +8,7 @@ March 25th, 2018.
 
 import os
 import csv
+import time
 import sys
 import numpy as np
 import matplotlib.pyplot as plt
@@ -130,10 +131,8 @@ if __name__ == '__main__':
 
     candidates = []
     training_output = []
-    for f in files:
+    for f in files[:9]:
         label = os.path.splitext(os.path.basename(f))[0]
-        if label != 'train_12':
-            continue
         print(label)
         im = load_image(f)
 
@@ -169,13 +168,18 @@ if __name__ == '__main__':
             # plt.title('{} (slice index {})'.format(label, slice_index))
             # plt.show()
             pass
+        t = time.time()
         lung_mask = mask_gen.get_lung_mask(lung_scan)
+        print('Mask generation:', time.time() - t, 's')
+        t = time.time()
         candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, lung_mask)
+        print('Nodule extraction:', time.time() - t, 's')
         x, y = classifier.generate_training_output(candidate_nodules, training_nodule_locations)
         candidates.extend(x)
         training_output.extend(y)
-        print(len(candidates), len(training_output))
 
     # We now have our training data
     print('Classifying now...')
+    t = time.time()
     classifier.classifier(candidates, training_output)
+    print('Classified in', time.time() - t, 's')
