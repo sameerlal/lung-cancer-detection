@@ -7,16 +7,16 @@ May 3rd, 2018.
 """
 
 import sys
-
 import numpy as np
 import sklearn.neighbors
 import sklearn.linear_model
 import sklearn.neural_network
 import sklearn.externals.joblib
+
 import util
 
 
-def generate_training_output(candidate_nodules, training_nodules):
+def generate_training_input(candidate_nodules, training_nodules):
     """Generate input to the classifier using the generated candidate nodules and training nodules."""
     y = []
     found_training = []
@@ -29,20 +29,27 @@ def generate_training_output(candidate_nodules, training_nodules):
                 break
         y.append(output)
     print(len(candidate_nodules), len(y))
-    not_found = [nodule['box'] for nodule in training_nodules if nodule not in found_training]
+    not_found = [nodule for nodule in training_nodules if nodule not in found_training]
     if len(not_found) > 0:
         for nodule in not_found:
-            print('** Not found:', nodule)
-    x = [nodule['box'] for nodule in candidate_nodules]
-    x.extend(not_found)
+            print('** Not found:', nodule['center'])
+    x = generate_testing_input(candidate_nodules)
+    x.extend(generate_testing_input(not_found))
     y.extend([1] * len(not_found))
     return x, y
 
 
-def classifier(input, output):
-    """Train and return classifier using CNNs."""
+def generate_testing_input(candidate_nodules):
+    """Generate input to the classifier using the generated candidate nodules."""
+    x = [np.append(nodule['center'], [nodule['radius'], nodule['intensity']]) for nodule in candidate_nodules]
+    return x
+
+
+def classifier(input, output, model=None):
+    """Train and return classifier using a neural network."""
     print(len(input), len(output))
-    model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(10, 10, 4))
+    if model is None:
+        model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(10, 10, 4))
     x = []
     with open('training.csv', 'w') as f:
         for i in range(len(input)):
@@ -51,6 +58,9 @@ def classifier(input, output):
             x.append(row)
             f.write(line)
             f.write('\n')
+    model.fit(x, output)
+    sklearn.externals.joblib.dump(model, 'classifier.pkl')
+    return model
 
 
 def load_data_from_csv(csv_filename):

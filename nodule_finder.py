@@ -43,8 +43,8 @@ def extract_candidate_nodules_3d(img_arr, mask):
             radius = point[0] / 2
             box = util.get_bounding_box(img_arr, coord, int(radius))
             box = box[int(box.shape[0] // 2)]  # Get middle slice
-            # candidate.append(util.average_intensity(img_arr, point[:0:-1], point[0]))
-            candidates.append(dict(center=coord, radius=radius, box=box))
+            avg_intensity = util.average_intensity(img_arr, point[:0:-1], point[0])
+            candidates.append(dict(center=coord, radius=radius, box=box, intensity=avg_intensity))
     # plt.show()
     return candidates
 

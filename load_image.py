@@ -140,10 +140,8 @@ if __name__ == '__main__':
     directory = 'Traindata'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
-
-    candidates = []
-    training_output = []
-    for f in files[1:2]:
+    model = None
+    for f in files[1:3]:
         label = os.path.splitext(os.path.basename(f))[0]
         print(label)
         im = load_image(f)
@@ -169,8 +167,9 @@ if __name__ == '__main__':
                 radius = nodule[3] / 2
                 box = util.get_bounding_box(lung_scan, (x, y, z), radius)
                 box = box[int(box.shape[0] // 2)]  # Get middle slice
-                # training_nodule_locations.append([x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
-                training_nodule_locations.append(dict(center=(x,y,z), radius=radius, box=box))
+                avg_intensity = util.average_intensity(lung_scan, [x, y, z], nodule[3])
+                training_nodule_locations.append(dict(center=(x,y,z), radius=radius, box=box, intensity=avg_intensity))
+                # True center is the original center based on the lung scan, center is the center after shifting based on the origin.
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))
@@ -190,12 +189,9 @@ if __name__ == '__main__':
         t = time.time()
         candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, lung_mask)
         print('Nodule extraction:', time.time() - t, 's')
-        x, y = classifier.generate_training_output(candidate_nodules, training_nodule_locations)
-        candidates.extend(x)
-        training_output.extend(y)
-
-    # We now have our training data
-    print('Classifying now...')
-    t = time.time()
-    classifier.classifier(candidates, training_output)
-    print('Classified in', time.time() - t, 's')
+        x, y = classifier.generate_training_input(candidate_nodules, training_nodule_locations)
+        # We now have our training data
+        print('Classifying now...')
+        t = time.time()
+        model = classifier.classifier(x, y, model=model)
+        print('Classified in', time.time() - t, 's')
