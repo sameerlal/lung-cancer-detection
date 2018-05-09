@@ -47,6 +47,8 @@ def classifier(input, output):
             f.write(line)
             f.write('\n')
     knn = sklearn.linear_model.LogisticRegression()
+    input = np.asarray(input)
+    input = input[:, 3:]
     knn.fit(input, output)
     sklearn.externals.joblib.dump(knn, 'classifier.pkl')
 

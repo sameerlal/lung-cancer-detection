@@ -38,10 +38,20 @@ def extract_candidate_nodules_3d(img_arr, mask):
             # if abs(point[1] - slice_index) < 2:
                 # circle = plt.Circle((point[3], point[2]), point[0] // 2, color='r', fill=False)
                 # plt.gca().add_artist(circle)
-            candidate = list(point[::-1])
+            candidate = list(point[:0:-1])
+            candidate.extend(candidate)
+            for i in range(3):
+                candidate[i+3] = candidate[i+3]/img_arr.shape[2-i]
+            candidate.append(point[0])
             candidate.append(util.average_intensity(img_arr, point[:0:-1], point[0]))
+            candidate.append(util.radial_variance(img_arr, point[:0:-1], point[0]))
+            #mat = util.spac_mat(img_arr, point[:0:-1], point[0])
+            #contrast = util.get_contrast(mat)
+            #corr = util.get_corr(mat)
+            #candidate.append(contrast)
+            #candidate.append(corr)
             candidates.append(candidate)
-    plt.show()
+    #plt.show()
     return candidates
 
 

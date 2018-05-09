@@ -137,13 +137,13 @@ def load_scan_to_array(lung_scan_filename):
 
 if __name__ == '__main__':
     # Training data should be in the Traindata_small/ directory
-    directory = 'Traindata'
+    directory = 'Traindata_small'
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
 
     candidates = []
     training_output = []
-    for f in files[:9]:
+    for f in files:
         label = os.path.splitext(os.path.basename(f))[0]
         print(label)
         im = load_image(f)
@@ -167,7 +167,8 @@ if __name__ == '__main__':
                 origin = get_origin(im)
                 x, y, z = nodule[:3] - origin
                 training_nodule_locations.append(
-                    [x, y, z, nodule[3], util.average_intensity(lung_scan, [x, y, z], nodule[3])])
+                    [x, y, z, x/lung_scan.shape[2], y/lung_scan.shape[1], z/lung_scan.shape[0], nodule[3], 
+                     util.average_intensity(lung_scan, [x, y, z], nodule[3]), util.radial_variance(lung_scan, [int(x), int(y), int(z)], nodule[3])])
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')
                 # plt.title('{} (slice index {})'.format(label, slice_index))
@@ -175,21 +176,21 @@ if __name__ == '__main__':
                 # circle = plt.Circle((x, y), nodule[3] / 2, color='r', fill=False)
                 # plt.gca().add_artist(circle)
                 # plt.show()
+            t = time.time()
+            lung_mask = mask_gen.get_lung_mask(lung_scan)
+            print('Mask generation:', time.time() - t, 's')
+            t = time.time()
+            candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, lung_mask)
+            print('Nodule extraction:', time.time() - t, 's')
+            x, y = classifier.generate_training_output(candidate_nodules, training_nodule_locations)
+            candidates.extend(x)
+            training_output.extend(y)
         else:
             print('NO NODULES FOUND')
             # plt.imshow(img_arr[slice_index], cmap='gray')
             # plt.title('{} (slice index {})'.format(label, slice_index))
             # plt.show()
             pass
-        t = time.time()
-        lung_mask = mask_gen.get_lung_mask(lung_scan)
-        print('Mask generation:', time.time() - t, 's')
-        t = time.time()
-        candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, lung_mask)
-        print('Nodule extraction:', time.time() - t, 's')
-        x, y = classifier.generate_training_output(candidate_nodules, training_nodule_locations)
-        candidates.extend(x)
-        training_output.extend(y)
 
     # We now have our training data
     print('Classifying now...')
