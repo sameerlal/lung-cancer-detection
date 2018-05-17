@@ -65,7 +65,7 @@ def classifier(input, output, model=None):
         model.add(Dense(1))
         model.add(Activation('sigmoid'))  # gives probabilities
         model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(np.asarray(input), np.asarray(output), epochs=10, batch_size=16)
+    model.fit(np.asarray(input), np.asarray(output), epochs=4, batch_size=32)
     model.save('classifier.h5')
     return model
 

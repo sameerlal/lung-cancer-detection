@@ -141,7 +141,7 @@ if __name__ == '__main__':
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
     model = None
-    for f in files[:5]:
+    for f in files:
         label = os.path.splitext(os.path.basename(f))[0]
         print(label)
         im = load_image(f)
