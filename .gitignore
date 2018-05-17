@@ -115,3 +115,9 @@ Traindata_small/
 
 # PKL files
 *.pkl
+
+# Keras exports
+*.h5
+
+# Numpy exports
+*.npy

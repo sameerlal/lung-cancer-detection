@@ -9,7 +9,7 @@ May 7th, 2018.
 import os
 import sys
 import numpy as np
-import sklearn.externals.joblib
+from keras.models import load_model
 
 import mask_gen
 import nodule_finder
@@ -39,8 +39,10 @@ def predict(model, scan_directory):
         mask = mask_gen.get_lung_mask(lung_scan)
         candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, mask)
         x = classifier.generate_testing_input(candidate_nodules)
-        prob = model.predict_proba(x)
-        expected_output = None  # We don't know what the expected output
+        prob = []
+        for nodule in x:
+            prediction = model.predict(np.asarray([util.pad_3d(nodule, 32, 32, 32)]))
+            prob.append(prediction)
         with open('predictions.csv', 'a') as f:
             for i in range(len(candidate_nodules)):
                 candidate = candidate_nodules[i]
@@ -50,13 +52,13 @@ def predict(model, scan_directory):
                 true_center = true_center.astype(str)
                 f.write(','.join(true_center))
                 f.write(',')
-                f.write(str(prob[i][1]))
+                f.write(str(prob[i][0]))
                 f.write('\n')
 
 
 if __name__ == '__main__':
-    classifier_filename = 'classifier.pkl'
-    model = sklearn.externals.joblib.load(classifier_filename)
+    classifier_filename = 'classifier.h5'
+    model = load_model(classifier_filename)
     directory = sys.argv[1]
     print('Using scans in directory', directory, 'for testing.')
     predict(model, directory)

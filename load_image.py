@@ -168,7 +168,8 @@ if __name__ == '__main__':
                 box = util.get_bounding_box(lung_scan, (x, y, z), radius)
                 box = box[int(box.shape[0] // 2)]  # Get middle slice
                 avg_intensity = util.average_intensity(lung_scan, [x, y, z], nodule[3])
-                training_nodule_locations.append(dict(center=(x,y,z), radius=radius, box=box, intensity=avg_intensity))
+                training_nodule_locations.append(
+                    dict(center=(x, y, z), radius=radius, box=box, intensity=avg_intensity))
                 # True center is the original center based on the lung scan, center is the center after shifting based on the origin.
                 slice_index = int(z)
                 # plt.imshow(img_arr[slice_index], cmap='gray')

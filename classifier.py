@@ -8,10 +8,9 @@ May 3rd, 2018.
 
 import sys
 import numpy as np
-import sklearn.neighbors
-import sklearn.linear_model
-import sklearn.neural_network
-import sklearn.externals.joblib
+from keras.models import Sequential
+from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Activation, Dense, Flatten, Dropout
 
 import util
 
@@ -41,25 +40,35 @@ def generate_training_input(candidate_nodules, training_nodules):
 
 def generate_testing_input(candidate_nodules):
     """Generate input to the classifier using the generated candidate nodules."""
-    x = [np.append(nodule['center'], [nodule['radius'], nodule['intensity']]) for nodule in candidate_nodules]
-    return x
+    x = [nodule['box'] for nodule in candidate_nodules]
+    # x = [np.append(nodule['center'], [nodule['radius'], nodule['intensity']]) for nodule in candidate_nodules]
+    return np.asarray(x)
 
 
 def classifier(input, output, model=None):
     """Train and return classifier using a neural network."""
     print(len(input), len(output))
-    if model is None:
-        model = sklearn.neural_network.MLPClassifier(hidden_layer_sizes=(10, 10, 4))
+    dim = 32
+    encoded = [[input[i], output[i]] for i in range(len(input))]
     x = []
-    with open('training.csv', 'w') as f:
-        for i in range(len(input)):
-            row = np.array(input[i]).flatten()
-            line = ', '.join([str(a) for a in row]) + ', ' + str(output[i])
-            x.append(row)
-            f.write(line)
-            f.write('\n')
-    model.fit(x, output)
-    sklearn.externals.joblib.dump(model, 'classifier.pkl')
+    for entry in input:
+        x.append(util.pad_3d(entry, dim, dim, dim))
+    # TODO check if training.npy exists and if so don't overwrite it.
+    np.save('training.npy', encoded)
+    if model is None:
+        model = Sequential()
+        model.add(Conv2D(32, (3, 3), input_shape=(dim, dim, dim)))
+        model.add(Activation('relu'))
+        model.add(MaxPooling2D(pool_size=(2, 2)))
+        model.add(Flatten())
+        model.add(Dense(32))
+        model.add(Activation('relu'))
+        model.add(Dropout(0.5))
+        model.add(Dense(1))
+        model.add(Activation('softmax'))  # softmax gives probabilities
+        model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
+    model.fit(np.asarray(x), np.asarray(output), epochs=10, batch_size=16)
+    model.save('classifier.h5')
     return model
 
 
@@ -71,8 +80,16 @@ def load_data_from_csv(csv_filename):
     return input, output
 
 
+def load_data_from_npy(npy_filename):
+    """Train the classifier from a npy file (numpy export)."""
+    data = np.load(npy_filename)
+    input = [row[0] for row in data]
+    output = [row[1] for row in data]
+    return np.asarray(input), np.asarray(output)
+
+
 if __name__ == '__main__':
-    training_csv = sys.argv[1]
-    input, output = load_data_from_csv(training_csv)
+    training_npy = sys.argv[1]
+    input, output = load_data_from_npy(training_npy)
     classifier(input, output)
-    print('Wrote classifier to classifier.pkl')
+    print('Wrote classifier to classifier.h5')

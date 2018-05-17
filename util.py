@@ -77,6 +77,14 @@ def get_bounding_box(img_arr, center, radius):
     return img[z1:z2, y1:y2, x1:x2]
 
 
+def pad_3d(img_arr, x_pad, y_pad, z_pad):
+    """Pad img_arr TO the given dimensions. Truncates if dimensions are less than that of image."""
+    img = img_arr[:z_pad, :y_pad, :x_pad]
+    out = np.zeros((z_pad, y_pad, x_pad))
+    out[:img.shape[0], :img.shape[1], :img.shape[2]] = img
+    return out
+
+
 def average_intensity(img, coord, diameter):
     """
     Return the average intensity of a nodule.
