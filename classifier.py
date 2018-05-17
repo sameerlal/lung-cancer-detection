@@ -14,6 +14,8 @@ from keras.layers import Activation, Dense, Flatten, Dropout
 
 import util
 
+DIM = 32
+
 
 def generate_training_input(candidate_nodules, training_nodules):
     """Generate input to the classifier using the generated candidate nodules and training nodules."""
@@ -40,24 +42,20 @@ def generate_training_input(candidate_nodules, training_nodules):
 
 def generate_testing_input(candidate_nodules):
     """Generate input to the classifier using the generated candidate nodules."""
-    x = [nodule['box'] for nodule in candidate_nodules]
+    x = [util.pad_3d(nodule['box'], DIM, DIM, DIM) for nodule in candidate_nodules]
     # x = [np.append(nodule['center'], [nodule['radius'], nodule['intensity']]) for nodule in candidate_nodules]
-    return np.asarray(x)
+    return x
 
 
 def classifier(input, output, model=None):
     """Train and return classifier using a neural network."""
     print(len(input), len(output))
-    dim = 32
     encoded = [[input[i], output[i]] for i in range(len(input))]
-    x = []
-    for entry in input:
-        x.append(util.pad_3d(entry, dim, dim, dim))
     # TODO check if training.npy exists and if so don't overwrite it.
     np.save('training.npy', encoded)
     if model is None:
         model = Sequential()
-        model.add(Conv2D(32, (3, 3), input_shape=(dim, dim, dim)))
+        model.add(Conv2D(32, (3, 3), input_shape=(DIM, DIM, DIM)))
         model.add(Activation('relu'))
         model.add(MaxPooling2D(pool_size=(2, 2)))
         model.add(Flatten())
@@ -65,9 +63,9 @@ def classifier(input, output, model=None):
         model.add(Activation('relu'))
         model.add(Dropout(0.5))
         model.add(Dense(1))
-        model.add(Activation('softmax'))  # softmax gives probabilities
+        model.add(Activation('sigmoid'))  # gives probabilities
         model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(np.asarray(x), np.asarray(output), epochs=10, batch_size=16)
+    model.fit(np.asarray(input), np.asarray(output), epochs=10, batch_size=16)
     model.save('classifier.h5')
     return model
 

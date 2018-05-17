@@ -39,10 +39,7 @@ def predict(model, scan_directory):
         mask = mask_gen.get_lung_mask(lung_scan)
         candidate_nodules = nodule_finder.extract_candidate_nodules_3d(lung_scan, mask)
         x = classifier.generate_testing_input(candidate_nodules)
-        prob = []
-        for nodule in x:
-            prediction = model.predict(np.asarray([util.pad_3d(nodule, 32, 32, 32)]))
-            prob.append(prediction)
+        prob = model.predict(np.asarray(x))
         with open('predictions.csv', 'a') as f:
             for i in range(len(candidate_nodules)):
                 candidate = candidate_nodules[i]

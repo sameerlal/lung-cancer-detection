@@ -141,7 +141,7 @@ if __name__ == '__main__':
     files = get_files(directory)
     training_nodules = load_nodule_csv('training_nodules.csv')
     model = None
-    for f in files[1:3]:
+    for f in files[:5]:
         label = os.path.splitext(os.path.basename(f))[0]
         print(label)
         im = load_image(f)
@@ -166,7 +166,7 @@ if __name__ == '__main__':
                 x, y, z = nodule[:3] - origin
                 radius = nodule[3] / 2
                 box = util.get_bounding_box(lung_scan, (x, y, z), radius)
-                box = box[int(box.shape[0] // 2)]  # Get middle slice
+                # box = box[int(box.shape[0] // 2)]  # Get middle slice
                 avg_intensity = util.average_intensity(lung_scan, [x, y, z], nodule[3])
                 training_nodule_locations.append(
                     dict(center=(x, y, z), radius=radius, box=box, intensity=avg_intensity))
